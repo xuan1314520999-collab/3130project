@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Finder PWA</title>
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+
+<body>
+<div id="app">
+
+    <!-- ✅ Loading -->
+    <div v-if="isLoading" class="loading-screen">
+        <div class="loader">
+            <i class="fas fa-school"></i>
+        </div>
+        <p>Loading School Data...</p>
+    </div>
+
+    <div v-else>
+
+        <!-- ✅ Toast -->
+        <div v-if="dataUpdated" class="update-toast">
+            ✅ Data Updated
+        </div>
+
+        <!-- ✅ HOME -->
+        <div v-show="currentTab === 'home'" class="page-container">
+
+            <div class="header">
+                <h1>School Query</h1>
+
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input v-model="searchQuery" placeholder="Search school...">
+                </div>
+
+                <div class="filter-bar">
+                    <!-- 修复1：改用提前初始化的districts数组（去重+过滤空值），提升性能 -->
+                    <select v-model="selectedDistrict">
+                        <option value="">All Districts</option>
+                        <option v-for="d in districts" :key="d" :value="d">
+                            {{ d }}
+                        </option>
+                    </select>
+
+                    <select v-model="selectedLevel">
+                        <option value="">All Levels</option>
+                        <option value="Primary">Primary</option>
+                        <option value="Secondary">Secondary</option>
+                    </select>
+
+                    <select v-model="sortOption">
+                        <option value="distance-asc">Near to Far</option>
+                        <option value="distance-desc">Far to Near</option>
+                        <option value="name">Name (A-Z)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div v-if="isLoadingSkeleton" class="list-container">
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+                <div class="skeleton-card"></div>
+              </div>
+
+            <!-- ✅ EMPTY -->
+            <div v-if="filteredSchools.length === 0" class="empty-state">
+                <h3>No Schools Found</h3>
+            </div>
+
+            <!-- ✅ LIST -->
+            <div v-else class="list-container">
+
+                <div v-for="(school, index) in filteredSchools" 
+                    :style="{ '--index': index }"
+                     :key="school['SCHOOL NO.']"
+                     class="school-card"
+                     @click="openDetail(school)">
+
+                    <div class="school-img-placeholder">
+                        <i class="fas fa-school"></i>
+                    </div>
+
+                    <div class="school-info">
+                        <div class="school-name">{{ school['ENGLISH NAME'] }}</div>
+                        <div class="school-meta">
+                            {{ school['DISTRICT'] }} · {{ school['SCHOOL LEVEL'] }}
+                            <span v-if="school.distance" style="color: var(--primary);">
+                                • {{ school.distance > 1000 ? (school.distance/1000).toFixed(1) + 'km' : Math.round(school.distance) + 'm' }}
+                              </span>
+                        </div>
+                    </div>
+
+                    <!-- ✅ FAVORITE -->
+                    <div class="fav-btn" @click.stop="toggleFavorite(school)">
+                        <i class="fas" :class="isFavorite(school) ? 'fa-heart' : 'fa-heart-broken'"></i>
+                    </div>
+
+                    <!-- ✅ COMPARE -->
+                    <button class="compare-btn" @click.stop="toggleCompare(school)">
+                        {{ isComparing(school) ? '✓ Added' : '+ Compare' }}
+                    </button>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ✅ DETAIL -->
+        <div v-if="currentTab === 'detail'" class="detail-page">
+
+            <div class="detail-header">
+                <button @click="closeDetail">←</button>
+                <h3>{{ currentSchool['ENGLISH NAME'] }}</h3>
+            </div>
+
+            <div class="card">
+                <div id="map"></div>
+            </div>
+
+            <div class="card">
+                <p><b>Address:</b> {{ currentSchool['ENGLISH ADDRESS'] }}</p>
+                <p><b>Phone:</b> {{ currentSchool['TELEPHONE'] }}</p>
+                <!-- 修复2：详情页距离格式化，和首页保持一致 -->
+                <p v-if="currentSchool.distance">
+                    <b>Distance from you:</b> 
+                    {{ currentSchool.distance > 1000 ? (currentSchool.distance/1000).toFixed(1) + ' km' : Math.round(currentSchool.distance) + ' m' }}
+                </p>
+                <!-- 新增3：学校官网条件渲染（有则显示，无则隐藏） -->
+                <p v-if="currentSchool['WEBSITE'] && currentSchool['WEBSITE'].trim()">
+                    <b>Website:</b> 
+                    <a :href="currentSchool['WEBSITE']" target="_blank" style="color: #0066cc; text-decoration: underline;">
+                        {{ currentSchool['WEBSITE'] }}
+                    </a>
+                </p>
+                <p><b>Finance:</b> {{ currentSchool['FINANCE TYPE'] }}</p>
+            </div>
+
+        </div>
+
+        <!-- ✅ COMPARE -->
+<!-- ✅ COMPARE 美化版 -->
+<div v-if="currentTab === 'compare'" class="page-container">
+  <div class="compare-page-wrapper">
+    <!-- 空状态美化 -->
+    <div v-if="compareList.length === 0" class="compare-empty-state">
+      <i class="fas fa-balance-scale"></i>
+      <h3>Select up to 3 schools to compare</h3>
+      <p>Add schools from the home page to start comparing</p>
+    </div>
+
+    <!-- 对比表格卡片（核心：圆角容器） -->
+    <div v-else class="compare-table-card">
+      <!-- 表格标题栏 -->
+      <div class="compare-table-header">
+        School Comparison ({{ compareList.length }}/{{ 3 }})
+      </div>
+      
+      <!-- 表格容器 -->
+      <div class="compare-table-container">
+        <table class="compare-table">
+          <!-- 表头：学校名称 -->
+          <thead>
+            <tr>
+              <th class="compare-th-label">Attribute</th>
+              <th v-for="school in compareList" class="compare-th-school" :key="school['SCHOOL NO.']">
+                {{ school['ENGLISH NAME'] }}
+              </th>
+            </tr>
+          </thead>
+          <!-- 表体：对比字段 -->
+          <tbody>
+            <!-- 行政区 -->
+            <tr>
+              <td class="compare-td-label">District</td>
+              <td v-for="school in compareList" :class="{diff: isDifferent('DISTRICT')}" :key="school['SCHOOL NO.'] + '-district'">
+                {{ school['DISTRICT'] || '-' }}
+              </td>
+            </tr>
+            <!-- 学校等级 -->
+            <tr>
+              <td class="compare-td-label">Level</td>
+              <td v-for="school in compareList" :class="{diff: isDifferent('SCHOOL LEVEL')}" :key="school['SCHOOL NO.'] + '-level'">
+                {{ school['SCHOOL LEVEL'] || '-' }}
+              </td>
+            </tr>
+            <!-- 资助类型 -->
+            <tr>
+              <td class="compare-td-label">Finance Type</td>
+              <td v-for="school in compareList" :class="{diff: isDifferent('FINANCE TYPE')}" :key="school['SCHOOL NO.'] + '-finance'">
+                {{ school['FINANCE TYPE'] || '-' }}
+              </td>
+            </tr>
+            <!-- 上课时段 -->
+            <tr>
+              <td class="compare-td-label">Session</td>
+              <td v-for="school in compareList" :class="{diff: isDifferent('SESSION')}" :key="school['SCHOOL NO.'] + '-session'">
+                {{ school['SESSION'] || '-' }}
+              </td>
+            </tr>
+            <!-- 电话 -->
+            <tr>
+              <td class="compare-td-label">Phone</td>
+              <td v-for="school in compareList" :class="{diff: isDifferent('TELEPHONE')}" :key="school['SCHOOL NO.'] + '-phone'">
+                <a :href="'tel:' + school['TELEPHONE']" v-if="school['TELEPHONE']">
+                  {{ school['TELEPHONE'] }}
+                </a>
+                <span v-else>-</span>
+              </td>
+            </tr>
+            <!-- 距离（如果有） -->
+            <tr>
+              <td class="compare-td-label">Distance</td>
+              <td v-for="school in compareList" :class="{diff: isDifferent('distance')}" :key="school['SCHOOL NO.'] + '-distance'">
+                {{ school.distance ? (school.distance > 1000 ? (school.distance/1000).toFixed(1) + 'km' : Math.round(school.distance) + 'm') : '-' }}
+              </td>
+            </tr>
+            <!-- 新增：学校官网（丰富对比维度） -->
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 清空对比按钮 -->
+    <div v-if="compareList.length > 0">
+      <button class="clear-compare-btn" @click="compareList = []">
+        <i class="fas fa-trash"></i> Clear All Comparisons
+      </button>
+    </div>
+  </div>
+</div>
+
+        <!-- ✅ FAVORITES -->
+        <div v-if="currentTab === 'favorites'" class="page-container">
+
+            <h2>My Favorites</h2>
+
+            <div v-if="favorites.length === 0" class="empty-state">
+                No favorites yet
+            </div>
+
+            <div v-else class="list-container">
+                <!-- 修复5：添加:key属性，避免Vue渲染警告 -->
+                <div v-for="school in favorites"
+                :key="school['SCHOOL NO.']"
+                class="school-card"
+                @click="openDetail(school)">
+               <!-- 补上和首页完全一致的学校图标，对齐布局 -->
+               <div class="school-img-placeholder">
+                   <i class="fas fa-school"></i>
+               </div>
+           
+               <div class="school-info">
+                   <div class="school-name">{{ school['ENGLISH NAME'] }}</div>
+                   <div class="school-meta">{{ school['DISTRICT'] }}</div>
+               </div>
+           
+               <div class="fav-btn" @click.stop="toggleFavorite(school)">
+                   <i class="fas fa-trash"></i>
+               </div>
+           
+           </div>
+
+            </div>
+        </div>
+
+        <!-- ✅ TAB -->
+        <div class="tab-bar">
+            <!-- 给每个Tab加动态active类，当前页自动高亮 -->
+            <div class="tab-item" :class="{active: currentTab==='home'}" @click="currentTab='home'">
+                <i class="fas fa-home"></i>
+                <span>Home</span>
+            </div>
+        
+            <div class="tab-item" :class="{active: currentTab==='compare'}" @click="currentTab='compare'">
+                <i class="fas fa-balance-scale"></i>
+                <span>Compare</span>
+                <span v-if="compareList.length" class="badge">{{ compareList.length }}</span>
+            </div>
+        
+            <div class="tab-item" :class="{active: currentTab==='favorites'}" @click="currentTab='favorites'">
+                <i class="fas fa-heart"></i>
+                <span>Favorites</span>
+            </div>
+        
+        </div>
+
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
