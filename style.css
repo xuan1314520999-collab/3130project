@@ -1,0 +1,641 @@
+/* 全局样式区 - 页面切换动画（优先定义） */
+.page-container {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    position: relative;
+    z-index: 10; /* 确保层级高于默认元素 */
+    min-height: calc(100vh - 60px); /* 减去底部Tab栏高度 */
+  }
+  /* 匹配v-show的display状态，而非类名 */
+  .page-container:not([style*="display: none"]) {
+    opacity: 1;
+  }
+  
+  :root {
+    --primary: #6c5ce7;
+    --secondary: #a29bfe;
+    --accent: #00b894;
+    --bg: #f4f7f6;
+    --text: #2d3436;
+    --card-bg: #ffffff;
+    --border: #eeeeee;
+  }
+  
+  /* 深色模式全局变量覆盖 */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --primary: #8b7ff8;
+      --secondary: #9d94fc;
+      --accent: #00d1b2;
+      --bg: #1a1a1a;
+      --text: #e0e0e0;
+      --card-bg: #2d2d2d;
+      --border: #3d3d3d;
+    }
+  }
+  
+  /* --- Base --- */
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Roboto, Arial;
+    background: var(--bg);
+    color: var(--text);
+    /* 避免内容被底部Tab栏遮挡 */
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+  
+  /* --- Loading --- */
+  .loading-screen {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: var(--card-bg);
+  }
+  
+  .loader {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--border);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .loader i {
+    color: var(--primary);
+  }
+  
+  @keyframes spin {
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* --- Toast --- */
+  .update-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: white;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    z-index: 999;
+    animation: fadeInOut 3s ease;
+  }
+  
+  @keyframes fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, -10px); }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  
+  /* --- Header --- */
+  .header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    padding: 25px 15px;
+    border-radius: 0 0 25px 25px;
+    color: white;
+  }
+  
+  .search-bar {
+    margin-top: 15px;
+    position: relative;
+  }
+  
+  .search-bar input {
+    width: 100%;
+    padding: 10px 15px 10px 40px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    outline: none;
+  }
+  
+  .search-bar input::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    opacity: 1;
+  }
+  
+  .search-bar i {
+    position: absolute;
+    left: 12px;
+    top: 10px;
+  }
+  
+  /* --- Filter --- */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap; /* 小屏幕自动换行 */
+  }
+  .filter-bar select {
+    flex: 1;
+    min-width: 100px; /* 最小宽度，避免太窄 */
+    padding: 6px;
+    border-radius: 8px;
+    border: none;
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.2);
+    color: white;
+    outline: none;
+  }
+  /* 下拉框选项样式适配 */
+  .filter-bar select option {
+    background: var(--card-bg);
+    color: var(--text);
+  }
+  
+  /* --- List & Skeleton --- */
+  /* 骨架屏完整样式（修复：补充内容结构） */
+  .skeleton-card {
+    position: relative;
+    overflow: hidden;
+    background: var(--card-bg);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    height: 45px; /* 固定高度，和真实卡片一致 */
+  }
+  .skeleton-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    background: #eef1ff;
+    float: left;
+    margin-right: 10px;
+  }
+  .skeleton-line {
+    height: 10px;
+    background: #eef1ff;
+    border-radius: 4px;
+    margin: 8px 0;
+    clear: both;
+  }
+  .skeleton-line.title {
+    width: 60%;
+    height: 14px;
+  }
+  .skeleton-line.meta {
+    width: 40%;
+  }
+  /* 骨架屏的滑动高光动画 */
+  .skeleton-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, 
+      rgba(255,255,255,0) 0%, 
+      rgba(255,255,255,0.2) 50%, 
+      rgba(255,255,255,0) 100%
+    );
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+  
+  /* 列表容器样式 */
+  .list-container {
+    padding: 12px;
+  }
+  
+  /* 学校卡片样式（修复：合并重复定义，保留动画） */
+  .school-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--card-bg);
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: 0.2s;
+    /* 逐行滑入动画 */
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeInUp 0.3s ease forwards;
+    animation-delay: calc(var(--index) * 0.05s);
+  }
+  
+  /* 卡片点击反馈 */
+  .school-card:active {
+    transform: scale(0.97);
+  }
+  
+  /* 逐行滑入动画关键帧 */
+  @keyframes fadeInUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* 学校卡片-头像占位 */
+  .school-img-placeholder {
+    width: 45px;
+    height: 45px;
+    background: #eef1ff;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--primary);
+    margin-right: 10px;
+  }
+  
+  /* 学校卡片-信息区域 */
+  .school-info {
+    flex: 1;
+  }
+  .school-name {
+    font-size: 0.9rem;
+    font-weight: bold;
+  }
+  .school-meta {
+    font-size: 0.75rem;
+    color: #888;
+  }
+  
+  /* --- Favorite --- */
+  .fav-btn {
+    position: absolute;
+    right: 55px;
+    top: 10px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  .fav-btn i.fa-heart {
+    color: red;
+  }
+  .fav-btn i.fa-trash {
+    color: #ff7675;
+  }
+  
+  /* --- Compare Button --- */
+  .compare-btn {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .compare-btn:active {
+    background: var(--secondary);
+  }
+  
+  /* --- Detail --- */
+  .detail-page {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    z-index: 99;
+    overflow-y: auto;
+    /* 修复：添加入场+退场动画 */
+    animation: slideIn 0.3s ease forwards;
+  }
+  /* 详情页退出动画（配合JS控制） */
+  .detail-page.exit {
+    animation: slideOut 0.3s ease forwards;
+  }
+  
+  @keyframes slideIn {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); }
+    to { transform: translateX(100%); }
+  }
+  
+  /* 详情页卡片样式 */
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 12px;
+    margin: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  #map {
+    height: 200px;
+    border-radius: 10px;
+    width: 100%; /* 确保地图占满卡片宽度 */
+  }
+  /* 详情页头部 */
+  .detail-header {
+    padding: 15px;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    align-items: center;
+  }
+  .detail-header button {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-right: 10px;
+  }
+  .detail-header h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  
+  /* --- Compare Table --- */
+  /* --- Compare Table 美化版 --- */
+.compare-page-wrapper {
+  padding: 12px;
+  margin-bottom: 80px; /* 避开底部Tab栏 */
+}
+
+/* 表格外层圆角容器（核心：卡片化） */
+.compare-table-card {
+  background: var(--card-bg);
+  border-radius: 20px; /* 大圆角，更精致 */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08); /* 柔和阴影，分层感 */
+  overflow: hidden; /* 裁剪内部元素，保证圆角生效 */
+  border: 1px solid var(--border); /* 浅边框，强化卡片感 */
+}
+
+/* 表格标题栏（新增：视觉分区） */
+.compare-table-header {
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* 表格容器（横向滚动） */
+.compare-table-container {
+  overflow-x: auto;
+  /* 去掉原有padding，避免和外层容器冲突 */
+  padding: 0;
+  margin: 0;
+}
+
+.compare-table {
+  width: 100%;
+  min-width: 500px;
+  border-collapse: collapse;
+  background: var(--card-bg);
+}
+
+/* 表头：属性列 + 学校名列 */
+.compare-th-label {
+  background: #f8f9fa; /* 浅灰背景，区分表头和内容 */
+  color: var(--text);
+  padding: 16px 12px;
+  text-align: left;
+  font-size: 0.85rem;
+  font-weight: 600;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.compare-th-school {
+  background: var(--card-bg);
+  color: var(--primary);
+  padding: 16px 12px;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: 2px solid var(--secondary); /* 彩色下划线，强化表头 */
+}
+
+/* 表体：属性标签列 + 内容列 */
+.compare-td-label {
+  background: #f8f9fa;
+  padding: 14px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #555;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.compare-table td {
+  padding: 14px 12px;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  /* 文字垂直居中 */
+  vertical-align: middle;
+}
+
+/* 差异字段标色（强化视觉） */
+.diff {
+  color: var(--primary);
+  font-weight: 600;
+  background-color: rgba(108, 92, 231, 0.08);
+  /* 差异字段加圆角背景 */
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+}
+
+/* 电话链接样式优化 */
+.compare-table a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.compare-table a:hover {
+  text-decoration: underline;
+}
+
+/* 清空对比按钮（美化） */
+.clear-compare-btn {
+  background: linear-gradient(135deg, #ff7675, #ff4444);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 118, 117, 0.3);
+  margin: 20px auto;
+  display: block; /* 居中显示 */
+}
+.clear-compare-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 118, 117, 0.4);
+}
+.clear-compare-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(255, 118, 117, 0.3);
+}
+
+/* 空状态美化 */
+.compare-empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+  font-size: 0.9rem;
+  background: var(--card-bg);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  margin: 12px;
+}
+.compare-empty-state i {
+  font-size: 2rem;
+  color: var(--secondary);
+  margin-bottom: 16px;
+  display: block;
+}
+
+/* 深色模式适配 */
+@media (prefers-color-scheme: dark) {
+  .compare-table-card {
+    border-color: #4d4d4d;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+  .compare-th-label, .compare-td-label {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    border-right-color: #4d4d4d;
+    border-bottom-color: #4d4d4d;
+  }
+  .compare-th-school {
+    border-bottom-color: var(--secondary);
+  }
+  .compare-table td {
+    border-bottom-color: #4d4d4d;
+    color: #e0e0e0;
+  }
+  .diff {
+    background-color: rgba(108, 92, 231, 0.15);
+  }
+  .compare-empty-state {
+    background: #2d2d2d;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  }
+}
+  
+  /* --- Tab Bar --- */
+  /* 修复：固定Tab栏高度，优化badge位置 */
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    display: flex;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border);
+    height: 60px; /* 固定高度 */
+    align-items: center;
+    /* 关键：z-index设为999，确保不被其他元素覆盖 */
+    z-index: 999;
+    /* 全面屏安全区适配 */
+    padding-bottom: env(safe-area-inset-bottom);
+    /* 新增：防止内容溢出到Tab栏下方 */
+    box-sizing: border-box;
+  }
+  .tab-item {
+    flex: 1;
+    text-align: center;
+    color: #888;
+    position: relative;
+    font-size: 0.75rem;
+  }
+  .tab-item i {
+    font-size: 1.2rem;
+    display: block;
+    margin-bottom: 2px;
+  }
+  .tab-item.active {
+    color: var(--primary);
+  }
+  /* 修复：badge位置适配 */
+  .badge {
+    position: absolute;
+    top: 0;
+    right: 50%;
+    transform: translateX(20px);
+    background: red;
+    color: white;
+    font-size: 10px;
+    padding: 2px 5px;
+    border-radius: 10px;
+  }
+  
+  /* --- 深色模式完整适配 --- */
+  @media (prefers-color-scheme: dark) {
+    /* 骨架屏适配 */
+    .skeleton-card::after {
+      background: linear-gradient(90deg, 
+        rgba(255,255,255,0) 0%, 
+        rgba(255,255,255,0.1) 50%, 
+        rgba(255,255,255,0) 100%
+      );
+    }
+    .skeleton-avatar, .skeleton-line {
+      background: #3d3d3d;
+    }
+    
+    /* 学校卡片适配 */
+    .school-card {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .school-meta {
+      color: #b0b0b0;
+    }
+    
+    /* 详情页适配 */
+    .card {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    
+    /* 对比表格适配 */
+    .compare-table {
+      background: var(--card-bg);
+      box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    }
+    .compare-td-label {
+      background: #3d3d3d;
+      color: #e0e0e0;
+      border-right-color: #4d4d4d;
+    }
+    .compare-table td {
+      border-bottom-color: #4d4d4d;
+      color: #e0e0e0;
+    }
+    .diff {
+      background-color: rgba(108, 92, 231, 0.15);
+    }
+    
+    /* Tab栏适配 */
+    .tab-bar {
+      border-top-color: #4d4d4d;
+    }
+  }
